@@ -3,6 +3,7 @@
 
 ; 在jmp指令执行后，我们便跳转到使用C++编写的函数setup_kernel，此后我们便可以使用C++来写内核了
 
+global enter_kernel
 extern setup_kernel
 enter_kernel:
     jmp setup_kernel
