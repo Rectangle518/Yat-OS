@@ -57,7 +57,122 @@ mov cr0, eax                        ; 设置PE位
 
 ; 通过远跳转进入保护模式
 ; 此时，jmp指令将CODE_SELECTOR送入cs，将protect_mode_begin + LOADER_START_ADDRESS送入eip，进入保护模式
-jmp dword CODE_SELECTOR:protect_mode_begin  
+jmp dword CODE_SELECTOR:protect_mode_begin 
+
+; 以下为保护模式下的代码
+[bits 32]
+protect_mode_begin:
+
+; 设置段寄存器
+; 因为在实模式下，段寄存器保存的是段基址（使用时需要左移4位），而在保护模式下，段寄存器保存的是段选择子
+; 因此进入保护模式后需要重新设置各个段寄存器
+mov eax, DATA_SELECTOR
+mov ds, eax
+mov es, eax
+mov eax, STACK_SELECTOR
+mov ss, eax
+mov eax, VIDEO_SELECTOR
+mov gs, eax
+
+mov eax, KERNEL_START_SECTOR
+mov ebx, KERNEL_START_ADDRESS
+mov ecx, KERNEL_SECTOR_COUNT
+
+; 假设我们实现的内核很小，因此下面我们约定内核的大小是200个扇区，起始地址是0x20000，内核存放在硬盘的起始位置是第6个扇区
+load_kernel: 
+
+    ; 即将调用asm_read_hard_disk函数，先通过栈传入参数
+    push eax                 ; 传入参数2：要读取的逻辑扇区号，即block参数
+    push ebx                 ; 传入参数1：要写入的内存地址，即memory参数
+    call asm_read_hard_disk  ; 读取硬盘
+    add esp, 8               ; 清理栈上的参数
+    inc eax                  ; 读取下一个逻辑扇区，即block+1
+    add ebx, 512             ; 内存地址增加512字节，指向下一个扇区的内存位置
+    loop load_kernel
+
+; TODO：取消下面几行的注释
+; ============================================================================================
+; call open_page_mechanism
+; mov eax, PAGE_DIRECTORY
+; mov cr3, eax ; 放入页目录表地址
+; mov eax, cr0
+; or eax, 0x80000000
+; mov cr0, eax           ; 置PG=1，开启分页机制
+
+; sgdt [pgdt]
+; add dword[pgdt + 2], 0xc0000000
+; lgdt [pgdt]
+; ============================================================================================
+
+; 跳转到内核入口
+jmp dword CODE_SELECTOR:KERNEL_START_ADDRESS
+
+; 死循环
+jmp $
+
+; asm_read_hard_disk(memory, block)
+; 加载逻辑扇区号为block的扇区到内存地址memory
+
+asm_read_hard_disk:                           
+    push ebp
+    mov ebp, esp
+
+    push eax
+    push ebx
+    push ecx
+    push edx
+
+    mov eax, [ebp + 4 * 3] ; 第二个参数：逻辑扇区低16位
+
+    mov edx, 0x1f3
+    out dx, al    ; LBA地址7~0
+
+    inc edx        ; 0x1f4
+    mov al, ah
+    out dx, al    ; LBA地址15~8
+
+    xor eax, eax
+    inc edx        ; 0x1f5
+    out dx, al    ; LBA地址23~16 = 0
+
+    inc edx        ; 0x1f6
+    mov al, ah
+    and al, 0x0f
+    or al, 0xe0   ; LBA地址27~24 = 0
+    out dx, al
+
+    mov edx, 0x1f2
+    mov al, 1
+    out dx, al   ; 读取1个扇区
+
+    mov edx, 0x1f7    ; 0x1f7
+    mov al, 0x20     ;读命令
+    out dx,al
+
+    ; 等待处理其他操作
+.waits:
+    in al, dx        ; dx = 0x1f7
+    and al,0x88
+    cmp al,0x08
+    jnz .waits                         
+    
+    ; 读取512字节到地址ds:bx
+    mov ebx, [ebp + 4 * 2]
+    mov ecx, 256   ; 每次读取一个字，2个字节，因此读取256次即可          
+    mov edx, 0x1f0
+.readw:
+    in ax, dx
+    mov [ebx], eax
+    add ebx, 2
+    loop .readw
+      
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    pop ebp
+
+    ret
 
 ; 这是前面提到的 pgdt变量的定义
 pgdt dw 0
