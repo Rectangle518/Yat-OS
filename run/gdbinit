@@ -3,6 +3,8 @@ file ../build/kernel.o
 set disassembly-flavor intel
 set architecture i386
 
+tui disable
+
 b *0x7c00
 b bootloader_start
 b enter_kernel

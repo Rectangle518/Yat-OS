@@ -18,6 +18,8 @@ public:
     void print(uint8 c, uint8 color);
     // 打印字符c，颜色默认到光标位置
     void print(uint8 c);
+    // 打印字符串，颜色默认
+    int print(const char *const str);
     // 移动光标到一维位置
     void moveCursor(uint position);
     // 移动光标到二维位置
@@ -29,5 +31,7 @@ public:
     // 滚屏
     void rollUp();
 };
+
+int printf(const char *const fmt, ...);
 
 #endif

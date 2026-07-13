@@ -1,6 +1,9 @@
 #include "stdio.h"
 #include "os_type.h"
 #include "asm_utils.h"
+#include "os_modules.h"
+#include "stdarg.h"
+#include "stdlib.h"
 
 STDIO::STDIO()
 {
@@ -45,6 +48,42 @@ void STDIO::print(uint8 c, uint8 color)
 void STDIO::print(uint8 c)
 {
     print(c, 0x07);
+}
+
+// 打印字符串到控制台
+int STDIO::print(const char *const str)
+{
+    int i = 0;
+
+    // 遍历字符串
+    for (i = 0; str[i]; ++i) 
+    {
+        switch(str[i])
+        {
+            // 处理换行符
+            case '\n':
+                uint row;  // 当前行号
+                row = getCursor() / 80;  // 获取当前光标所在的行号(假设每行80字符)
+                // 如果当前是最后一行(第24行)
+                if (row == 24)
+                {
+                    rollUp();  // 向上滚动屏幕
+                }
+                else 
+                {
+                    ++row;  // 若不是最后一行，则移动到下一行
+                }
+                moveCursor(row * 80);  // 将光标移动到新行的开始位置
+                break;
+
+            // 处理普通字符
+            default:
+                print(str[i]);  // 直接打印字符
+                break;
+        }
+    }
+
+    return i;  // 返回打印的字符数
 }
 
 // 屏幕的像素为25*80，所以光标的位置从上到下，从左到右依次编号为0-1999，用16位表示
@@ -124,4 +163,111 @@ void STDIO::rollUp()
         screen[2 * i] = ' ';
         screen[2 * i + 1] = 0x07;
     }
+}
+
+// 将fmt[i]放到缓冲区
+int printf_add_to_buffer(char *buffer, char c, int &idx, const int BUF_LEN)
+{
+    int counter = 0;
+
+    buffer[idx] = c;
+    ++idx;
+
+    // 如果缓冲区满，则将缓冲区输出并清空
+    if (idx == BUF_LEN)
+    {
+        buffer[idx] = '\0';
+        counter = stdio.print(buffer);
+        idx = 0;
+    }
+
+    // 返回打印的字符数
+    return counter;
+}
+
+int printf(const char *const fmt, ...)
+{
+    // 缓冲区大小为32
+    const int BUF_LEN = 32;
+
+    // 多出来的1个字符是用来放置\0的
+    char buffer[BUF_LEN + 1];
+
+    // 后面会将一个整数转化为字符串表示，number使用来存放转换后的数字字符串
+    // 保护模式是运行在32位环境下的，最大的数字字符串也不会超过32位
+    char number[33];
+
+    int idx, counter;
+    va_list ap;
+
+    // 让ap指向fmt后面的第一个参数
+    va_start(ap, fmt);
+
+    // idx表示缓冲区的下标，counter表示累计打印的字符数
+    idx = 0;
+    counter = 0;
+
+    // 遍历 fmt
+    for (int i = 0; fmt[i]; ++i)
+    {
+        if (fmt[i] != '%')
+        {
+            counter += printf_add_to_buffer(buffer, fmt[i], idx, BUF_LEN);
+        }
+        else
+        {
+            i++;
+            if (fmt[i] == '\0')
+            {
+                break;
+            }
+
+            switch (fmt[i])
+            {
+            case '%':
+                // 处理%符号
+                counter += printf_add_to_buffer(buffer, fmt[i], idx, BUF_LEN);
+                break;
+
+            case 'c':
+                // 处理字符，将字符放到缓冲区
+                counter += printf_add_to_buffer(buffer, va_arg(ap, char), idx, BUF_LEN);
+                break;
+
+            case 's':
+                // 处理字符串，清空当前缓冲区，然后直接打印字符串
+                buffer[idx] = '\0';
+                idx = 0;
+                counter += stdio.print(buffer);
+                counter += stdio.print(va_arg(ap, const char *));
+                break;
+
+            case 'd':
+            case 'x':
+                // 处理整数，先判断正负，再处理进制转换，最后将转换后的结果以字符串形式存进number，再逐个字符放到缓冲区
+                int temp = va_arg(ap, int);
+
+                if (temp < 0 && fmt[i] == 'd')
+                {
+                    counter += printf_add_to_buffer(buffer, '-', idx, BUF_LEN);
+                    temp = -temp;
+                }
+
+                itos(number, temp, (fmt[i] == 'd' ? 10 : 16));
+
+                for (int j = temp - 1; j >= 0; --j)
+                {
+                    counter += printf_add_to_buffer(buffer, number[j], idx, BUF_LEN);
+                }
+                break;
+
+            }
+        }
+    }
+
+    // 最后清空缓冲区，并全部打印出来
+    buffer[idx] = '\0';
+    counter += stdio.print(buffer);
+
+    return counter;
 }

@@ -5,7 +5,7 @@
 // 屏幕IO处理器
 STDIO stdio;
 // 中断管理器
-InterruptManager interruptManager
+InterruptManager interruptManager;
 
 
 extern "C" void setup_kernel()
@@ -16,6 +16,13 @@ extern "C" void setup_kernel()
     stdio.initialize();
     interruptManager.enableTimeInterrupt();
     interruptManager.setTimeInterrupt((void *)asm_time_interrupt_handler);
-    asm_enable_interrupt();
+    //asm_enable_interrupt();
+    printf("print percentage: %%\n"
+           "print char \"N\": %c\n"
+           "print string \"Hello World!\": %s\n"
+           "print decimal: \"-1234\": %d\n"
+           "print hexadecimal \"0x7abcdef0\": %x\n",
+           'N', "Hello World!", -1234, 0x7abcdef0);
+    //uint a = 1 / 0;
     asm_halt();
 }

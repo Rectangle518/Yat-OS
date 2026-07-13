@@ -2,6 +2,9 @@
 #include "os_type.h"
 #include "os_constant.h"
 #include "asm_utils.h"
+#include "stdio.h"
+
+extern STDIO stdio;
 
 int times = 0;
 
@@ -10,7 +13,7 @@ InterruptManager::InterruptManager()
     initialize();
 }
 
-InterruptManager::initialize()
+void InterruptManager::initialize()
 {
 
     // 初始化中断计数变量
@@ -28,7 +31,7 @@ InterruptManager::initialize()
     // 设置所有中断描述符，将中断处理程序设置为asm_interrupt_empty_handler
     for (uint i = 0; i < 256; ++i)
     {
-        setInterruptDescriptor(i, (uint32)asm_interrupt_empty_handler, 0);
+        setInterruptDescriptor(i, (uint32)asm_unhandled_interrupt, 0);
     }
 
     // 初始化8259A芯片

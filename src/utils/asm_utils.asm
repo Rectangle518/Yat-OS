@@ -11,9 +11,14 @@ global asm_in_port
 global asm_time_interrupt_handler
 global asm_enable_interrupt
 
+extern c_time_interrupt_handler
+
 ; 定义一个字符串变量，用作提示信息，以 '\0' 结尾
 ASM_UNHANDLED_INTERRUPT_INFO db 'Unhandled interrupt happened, halt...'
                              db 0
+
+ASM_IDTR dw 0
+         dd 0
 
 ; 定义打印字符串 "Hello World" 的函数
 asm_hello_world:
