@@ -6,8 +6,7 @@
 org 0x7e00
 %include "boot.inc"
 
-; TODO：取消下一行的注释
-; extern open_page_mechanism
+extern open_page_mechanism
 
 global bootloader_start
 bootloader_start:
@@ -91,19 +90,16 @@ load_kernel:
     add ebx, 512             ; 内存地址增加512字节，指向下一个扇区的内存位置
     loop load_kernel
 
-; TODO：取消下面几行的注释
-; ============================================================================================
-; call open_page_mechanism
-; mov eax, PAGE_DIRECTORY
-; mov cr3, eax ; 放入页目录表地址
-; mov eax, cr0
-; or eax, 0x80000000
-; mov cr0, eax           ; 置PG=1，开启分页机制
+call open_page_mechanism
+mov eax, PAGE_DIRECTORY
+mov cr3, eax ; 放入页目录表地址
+mov eax, cr0
+or eax, 0x80000000
+mov cr0, eax           ; 置PG=1，开启分页机制
 
-; sgdt [pgdt]
-; add dword[pgdt + 2], 0xc0000000
-; lgdt [pgdt]
-; ============================================================================================
+sgdt [pgdt]
+add dword[pgdt + 2], 0xc0000000
+lgdt [pgdt]
 
 ; 跳转到内核入口
 jmp dword CODE_SELECTOR:KERNEL_START_ADDRESS
