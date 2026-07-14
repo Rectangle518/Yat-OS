@@ -36,7 +36,10 @@ load_bootloader:
     loop load_bootloader  ; 循环读取bootloader的所有扇区
 
     ; 获取内存大小
-    ; TODO
+    mov ax, 0xe801
+    int 15h               ; 通过 int 15h 获取内存大小，这是实模式下的中断
+    mov [0x7c00], ax
+    mov [0x7c00+2], bx
 
     ; 跳转到bootloader
     ; 使用远跳转，会同时改变CS和IP寄存器的值
