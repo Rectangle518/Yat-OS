@@ -38,3 +38,11 @@ void itos(char *numStr, uint32 num, uint32 mod) {
     
     numStr[length] = '\0';
 }
+
+void memset(void *memory, char value, int length)
+{
+    for (int i = 0; i < length; ++i)
+    {
+        ((char *)memory)[i] = value;
+    }
+}

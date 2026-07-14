@@ -32,6 +32,17 @@ public:
     // 设置时钟中断处理函数
     void setTimeInterrupt(void *handler);
 
+    // 开中断
+    void enableInterrupt();
+    // 关中断
+    void disableInterrupt();
+    // 获取中断状态
+    // 返回true，中断开启；返回false，中断关闭
+    bool getInterruptStatus();
+    // 设置中断状态
+    // status=true，开中断；status=false，关中断
+    void setInterruptStatus(bool status);
+
 private:
     // 初始化8259A芯片
     void initialize8259A();

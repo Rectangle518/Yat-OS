@@ -10,6 +10,9 @@ global asm_out_port
 global asm_in_port
 global asm_time_interrupt_handler
 global asm_enable_interrupt
+global asm_disable_interrupt
+global asm_interrupt_status
+global asm_switch_thread
 
 extern c_time_interrupt_handler
 
@@ -172,5 +175,44 @@ asm_time_interrupt_handler:
 ; 开中断，使用sti指令
 ; void asm_enable_interrupt()
 asm_enable_interrupt:
+    sti
+    ret
+
+; 关中断，使用cli指令
+; void asm_disable_interrupt()
+asm_disable_interrupt:
+    cli
+    ret
+
+; 获取中断状态，返回中断标志位的值，返回值为0表示中断关闭，返回值为1表示中断开启
+; int asm_interrupt_status();
+asm_interrupt_status:
+    xor eax, eax
+    pushfd
+    pop eax
+    and eax, 0x200
+    ret
+
+; 切换线程，保存当前线程的上下文，恢复下一个线程的上下文
+; void asm_switch_thread(PCB *cur, PCB *next);
+asm_switch_thread:
+
+    ; 将被调用者保存的寄存器入栈
+    push ebp
+    push ebx
+    push edi
+    push esi
+
+    mov eax, [esp + 5 * 4]   ; 获取 cur参数
+    mov [eax], esp           ; 当前栈顶指针esp保存到cur结构体的第一个字段（stack字段）
+
+    mov eax, [esp + 6 * 4]   ; 获取 next参数
+    mov esp, [eax]           ; 从 next结构体的第一个字段（stack字段）恢复栈顶指针esp
+
+    pop esi
+    pop edi
+    pop ebx
+    pop ebp
+
     sti
     ret

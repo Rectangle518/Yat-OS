@@ -101,39 +101,49 @@ void InterruptManager::setTimeInterrupt(void *handler)
     setInterruptDescriptor(IRQ0_8259A_MASTER, (uint32)handler, 0);
 }
 
-// 时钟中断处理函数
+// 新的时钟中断处理函数
+// 这里使用的是时间片轮转（RR）算法
 extern "C" void c_time_interrupt_handler()
 {
-    // 清空屏幕
-    for (int i = 0; i < 80; ++i)
+    PCB *cur = programManager.running;
+
+    // 如果ticks还有剩余，则将当前进程的ticks减1，ticksPassedBy加1
+    if (cur && cur->ticks)
     {
-        stdio.print(0, i, ' ', 0x07);
+        --cur->ticks;
+        ++cur->ticksPassedBy;
     }
-
-    // 输出中断发生的次数
-    ++times;
-    char str[] = "interrupt happend: ";
-    char number[10];
-    int temp = times;
-
-    // 将数字转换为字符串表示
-    for(int i = 0; i < 10; ++i ) {
-        if(temp) {
-            number[i] = temp % 10 + '0';
-        } else {
-            number[i] = '0';
-        }
-        temp /= 10;
+    else
+    {
+        // 如果ticks已经用完，则执行线程调度
+        programManager.schedule();
     }
+}
 
-    // 移动光标到(0,0)输出字符
-    stdio.moveCursor(0);
-    for(int i = 0; str[i]; ++i ) {
-        stdio.print(str[i]);
+void InterruptManager::enableInterrupt()
+{
+    asm_enable_interrupt();
+}
+
+void InterruptManager::disableInterrupt()
+{
+    asm_disable_interrupt();
+}
+
+bool InterruptManager::getInterruptStatus()
+{
+    return asm_interrupt_status() ? true : false;
+}
+
+// 设置中断状态
+void InterruptManager::setInterruptStatus(bool status)
+{
+    if (status)
+    {
+        enableInterrupt();
     }
-
-    // 输出中断发生的次数
-    for( int i = 9; i > 0; --i ) {
-        stdio.print(number[i]);
+    else
+    {
+        disableInterrupt();
     }
 }
