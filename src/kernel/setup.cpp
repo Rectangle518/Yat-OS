@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "program.h"
 #include "thread.h"
+#include "sync.h"
+#include "memory.h"
 
 // 屏幕IO处理器
 STDIO stdio;
@@ -10,11 +12,19 @@ STDIO stdio;
 InterruptManager interruptManager;
 // 程序管理器
 ProgramManager programManager;
+// 内存管理器
+MemoryManager memoryManager;
 
 void first_thread(void *arg)
 {
     // 第1个线程不可以返回
-    printf("pid %d name \"%s\": Hello World!\n", programManager.running->pid, programManager.running->name);
+    // stdio.moveCursor(0);
+    // for (int i = 0; i < 25 * 80; ++i)
+    // {
+    //     stdio.print(' ');
+    // }
+    // stdio.moveCursor(0);
+
     asm_halt();
 }
 
@@ -32,6 +42,10 @@ extern "C" void setup_kernel()
     // 进程/线程管理器
     programManager.initialize();
 
+    // 内存管理器
+    memoryManager.openPageMechanism();
+    memoryManager.initialize();
+
     // 创建第一个线程
     int pid = programManager.executeThread(first_thread, nullptr, "first thread", 1);
     if (pid == -1)
@@ -40,7 +54,6 @@ extern "C" void setup_kernel()
         asm_halt();
     }
 
-    // 将第一个线程从就绪队列中取出，设置为运行状态
     ListItem *item = programManager.readyPrograms.front();
     PCB *firstThread = ListItem2PCB(item, tagInGeneralList);
     firstThread->status = RUNNING;

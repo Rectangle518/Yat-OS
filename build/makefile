@@ -1,7 +1,7 @@
 ASM_COMPILER = nasm
 C_COMPLIER = gcc
 CXX_COMPLIER = g++
-CXX_COMPLIER_FLAGS = -g -Wall -march=i386 -m32 -nostdlib -fno-builtin -ffreestanding -fno-pic
+CXX_COMPLIER_FLAGS = -g -Wall -march=i386 -std=c++11 -m32 -nostdlib -fno-builtin -ffreestanding -fno-pic
 LINKER = ld
 
 SRCDIR = ../src
@@ -37,10 +37,10 @@ bootloader.bin : $(SRCDIR)/boot/bootloader.asm
 	$(ASM_COMPILER) -o bootloader.bin -f bin -I$(INCLUDE_PATH)/ $(SRCDIR)/boot/bootloader.asm
 	
 entry.obj : $(SRCDIR)/boot/entry.asm
-	$(ASM_COMPILER) -o entry.obj -f elf32 $(SRCDIR)/boot/entry.asm
+	$(ASM_COMPILER) -o entry.obj -g -f elf32 $(SRCDIR)/boot/entry.asm
 	
-kernel.bin : entry.obj $(OBJ)
-	$(LINKER) -o kernel.bin -melf_i386 -N entry.obj $(OBJ) -e enter_kernel -Ttext 0x00020000 --oformat binary
+kernel.bin : kernel.o
+	objcopy -O binary kernel.o kernel.bin
 	
 kernel.o : entry.obj $(OBJ)
 	$(LINKER) -o kernel.o -melf_i386 -N entry.obj $(OBJ) -e enter_kernel -Ttext 0x00020000
@@ -49,7 +49,7 @@ $(CXX_OBJ): $(CXX_SOURCE)
 	$(CXX_COMPLIER) $(CXX_COMPLIER_FLAGS) -I$(INCLUDE_PATH) -c $(CXX_SOURCE)
 	
 asm_utils.o : $(SRCDIR)/utils/asm_utils.asm
-	$(ASM_COMPILER) -o asm_utils.o -f elf32 -I$(INCLUDE_PATH)/ $(SRCDIR)/utils/asm_utils.asm
+	$(ASM_COMPILER) -o asm_utils.o -g -f elf32 $(SRCDIR)/utils/asm_utils.asm -I$(INCLUDE_PATH)/
 clean:
 	rm -f *.o* *.bin 
 	

@@ -3,6 +3,7 @@
 ; Bootloader  [0x7e00, 0x8800)   512 bytes * 5
 ; GDT         [0x8800, 0x8880)   8 bytes   * 16（我们用到最多不超过16个段）
 
+org 0x7e00
 %include "boot.inc"
 
 ; TODO：取消下一行的注释

@@ -14,6 +14,7 @@ global asm_disable_interrupt
 global asm_interrupt_status
 global asm_switch_thread
 global asm_atomic_exchange
+global asm_init_page_reg
 
 extern c_time_interrupt_handler
 
@@ -235,4 +236,23 @@ asm_atomic_exchange:
 
     popad
     pop ebp
+    ret
+
+; 初始化页寄存器
+; void asm_init_page_reg(uint32 *page_directory_table)
+asm_init_page_reg:
+    push ebp
+    mov ebp, esp
+
+    push eax
+
+    mov eax, [ebp + 4 * 2]
+    mov cr3, eax ; 放入页目录表地址
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax           ; 置PG=1，开启分页机制
+
+    pop eax
+    pop ebp
+
     ret

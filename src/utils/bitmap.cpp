@@ -20,7 +20,7 @@ void BitMap::initialize(char *bitmap, const int length)
 }
 
 // 获取第index个资源的状态，true=allocated，false=free
-bool BitMap::get(const int index)
+bool BitMap::get(const int index) const
 {
     int pos = index / 8;
     int offset = index % 8;
