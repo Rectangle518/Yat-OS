@@ -158,7 +158,7 @@ void program_exit()
 {
     // 取出当前正在运行的线程，并将其状态设置为 DEAD
     PCB *thread = programManager.running;
-    thread->status = ThreadStatus::DEAD;
+    thread->status = ProgramStatus::DEAD;
 
     // 如果当前线程 pid不是0，则进行线程调度
     if (thread->pid)

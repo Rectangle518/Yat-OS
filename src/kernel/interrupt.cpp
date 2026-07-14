@@ -3,6 +3,8 @@
 #include "os_constant.h"
 #include "asm_utils.h"
 #include "stdio.h"
+#include "os_modules.h"
+#include "program.h"
 
 extern STDIO stdio;
 

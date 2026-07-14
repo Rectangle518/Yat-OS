@@ -1,3 +1,12 @@
+#ifndef LIST_H
+#define LIST_H
+
+struct ListItem
+{
+    ListItem *previous;
+    ListItem *next;
+};
+
 class List
 {
 public:
@@ -36,3 +45,5 @@ public:
     // 返回给定元素在List中的序号
     int find(ListItem *itemPtr);
 };
+
+#endif
