@@ -13,6 +13,7 @@ global asm_enable_interrupt
 global asm_disable_interrupt
 global asm_interrupt_status
 global asm_switch_thread
+global asm_atomic_exchange
 
 extern c_time_interrupt_handler
 
@@ -215,4 +216,23 @@ asm_switch_thread:
     pop ebp
 
     sti
+    ret
+
+; 原子地交换一个32位寄存器和内存中的值
+; 一个重要的假设：形式参数register指向的变量不是一个共享变量，只有满足这个条件才是原子的
+; void asm_atomic_exchange(uint32 *register, uint32 *memeory);
+asm_atomic_exchange:
+    push ebp
+    mov ebp, esp
+    pushad
+
+    mov ebx, [ebp + 4 * 2] ; register
+    mov eax, [ebx]         ; 
+    mov ebx, [ebp + 4 * 3] ; memory
+    xchg [ebx], eax        ;
+    mov ebx, [ebp + 4 * 2] ; memory
+    mov [ebx], eax         ; 
+
+    popad
+    pop ebp
     ret

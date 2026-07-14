@@ -173,3 +173,8 @@ void program_exit()
         asm_halt();
     }
 }
+
+void ProgramManager::MESA_WakeUp(PCB *program) {
+    program->status = ProgramStatus::READY;
+    readyPrograms.push_front(&(program->tagInGeneralList));
+}
