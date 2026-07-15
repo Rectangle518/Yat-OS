@@ -68,6 +68,12 @@ public:
 
     // 复制进程
     bool copyProcess(PCB *parent, PCB *child);
+
+    // 进程退出
+    void exit(int ret);
+
+    // 等待子进程
+    int wait(int *retval);
 };
 
 void program_exit();

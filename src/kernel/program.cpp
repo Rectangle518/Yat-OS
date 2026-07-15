@@ -124,6 +124,8 @@ void ProgramManager::releasePCB(PCB *program)
 
     // 将该PCB的状态设置为未分配
     PCB_SET_STATUS[index] = false;
+
+    this->allPrograms.erase(&(program->tagInAllList));
 }
 
 // 线程调度函数
@@ -149,8 +151,10 @@ void ProgramManager::schedule()
     }
     else if (running->status == ProgramStatus::DEAD)
     {
-        // 如果当前线程已经死亡，则释放其PCB，并将其从所有线程队列中移除
-        releasePCB(running);
+        // 回收线程，子进程留到父进程回收
+        if(!running->pageDirectoryAddress) {
+            releasePCB(running);
+        }
     }
 
     // 从就绪队列中取出一个线程作为下一个运行的线程
@@ -347,6 +351,16 @@ void load_process(const char *filename)
         asm_halt();
     }
     interruptStack->esp += PAGE_SIZE;
+    
+    // 设置进程返回地址
+    int *userStack = (int *)interruptStack->esp;
+    userStack -= 3;
+    userStack[0] = (int)exit;
+    userStack[1] = 0;
+    userStack[2] = 0;
+
+    interruptStack->esp = (int)userStack;
+
     interruptStack->ss = programManager.USER_STACK_SELECTOR;
 
     asm_start_process((int)interruptStack);
@@ -538,4 +552,117 @@ bool ProgramManager::copyProcess(PCB *parent, PCB *child)
     // 归还从内核分配的中转页
     memoryManager.releasePages(AddressPoolType::KERNEL, (int)buffer, 1);
     return true;
+}
+
+void ProgramManager::exit(int ret)
+{
+    // 关中断
+    interruptManager.disableInterrupt();
+    
+    // 第一步，标记PCB状态为`DEAD`并放入返回值。
+    PCB *program = this->running;
+    program->retValue = ret;
+    program->status = ProgramStatus::DEAD;
+
+    int *pageDir, *page;
+    int paddr;
+
+    // 第二步，如果PCB标识的是进程，则释放进程所占用的物理页、页表、页目录表和虚拟地址池bitmap的空间。
+    if (program->pageDirectoryAddress)
+    {
+        pageDir = (int *)program->pageDirectoryAddress;
+        for (int i = 0; i < 768; ++i)
+        {
+            if (!(pageDir[i] & 0x1))
+            {
+                continue;
+            }
+
+            page = (int *)(0xffc00000 + (i << 12));
+
+            for (int j = 0; j < 1024; ++j)
+            {
+                if(!(page[j] & 0x1)) {
+                    continue;
+                }
+
+                paddr = memoryManager.vaddr2paddr((i << 22) + (j << 12));
+                memoryManager.releasePhysicalPages(AddressPoolType::USER, paddr, 1);
+            }
+
+            paddr = memoryManager.vaddr2paddr((int)page);
+            memoryManager.releasePhysicalPages(AddressPoolType::USER, paddr, 1);
+        }
+
+        memoryManager.releasePages(AddressPoolType::KERNEL, (int)pageDir, 1);
+        
+        int bitmapBytes = ceil(program->userVirtual.resources.length, 8);
+        int bitmapPages = ceil(bitmapBytes, PAGE_SIZE);
+
+        memoryManager.releasePages(AddressPoolType::KERNEL,
+                                   (int)program->userVirtual.resources.bitmap, 
+                                   bitmapPages);
+
+    }
+
+    // 第三步，立即执行线程/进程调度。
+    schedule();
+}
+
+int ProgramManager::wait(int *retval)
+{
+    PCB *child;
+    ListItem *item;
+    bool interrupt, flag;
+
+    while (true)
+    {
+        interrupt = interruptManager.getInterruptStatus();
+        interruptManager.disableInterrupt();
+
+        item = this->allPrograms.head.next;
+
+        // 查找子进程
+        flag = true;
+        while (item)
+        {
+            child = ListItem2PCB(item, tagInAllList);
+            if (child->parentPid == this->running->pid)
+            {
+                flag = false;
+                if (child->status == ProgramStatus::DEAD)
+                {
+                    break;
+                }
+            }
+            item = item->next;
+        }
+
+        if (item) // 找到一个可返回的子进程
+        {
+            if (retval)
+            {
+                *retval = child->retValue;
+            }
+
+            int pid = child->pid;
+            releasePCB(child);
+            interruptManager.setInterruptStatus(interrupt);
+            return pid;
+        }
+        else 
+        {
+            if (flag) // 子进程已经返回
+            {
+                
+                interruptManager.setInterruptStatus(interrupt);
+                return -1;
+            }
+            else // 存在子进程，但子进程的状态不是DEAD
+            {
+                interruptManager.setInterruptStatus(interrupt);
+                schedule();
+            }
+        }
+    }
 }

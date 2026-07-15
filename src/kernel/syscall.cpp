@@ -40,3 +40,27 @@ int fork() {
 int syscall_fork() {
     return programManager.fork();
 }
+
+void exit(int ret) {
+    asm_system_call(3, ret);
+}
+
+void syscall_exit(int ret) {
+    programManager.exit(ret);
+}
+
+int wait(int *retval) {
+    return asm_system_call(4, (int)retval);
+}
+
+int syscall_wait(int *retval) {
+    return programManager.wait(retval);
+}
+
+void move_cursor(int i, int j) {
+    asm_system_call(5, i, j);
+}
+
+void syscall_move_cursor(int i, int j) {
+    stdio.moveCursor(i, j);
+}

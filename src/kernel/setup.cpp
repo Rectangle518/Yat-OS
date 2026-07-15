@@ -7,6 +7,7 @@
 #include "memory.h"
 #include "syscall.h"
 #include "tss.h"
+#include "shell.h"
 
 // 屏幕IO处理器
 STDIO stdio;
@@ -31,24 +32,23 @@ int syscall_0(int first, int second, int third, int forth, int fifth)
 void first_process()
 {
     int pid = fork();
+    
+    if(pid == -1) {
+        printf("error\n");
+        asm_halt();
+    } else {
+        if(pid) {
+            while((pid = wait(nullptr)) != -1) {
 
-    if (pid == -1)
-    {
-        printf("can not fork\n");
-    }
-    else
-    {
-        if (pid)
-        {
-            printf("I am father, fork reutrn: %d\n", pid);
-        }
-        else
-        {
-            printf("I am child, fork return: %d, my pid: %d\n", pid, programManager.running->pid);
+            }
+            asm_halt();
+        } else {
+            Shell shell;
+            shell.initialize();
+            shell.run();
         }
     }
 
-    asm_halt();
 }
 
 void first_thread(void *arg)
@@ -81,6 +81,12 @@ extern "C" void setup_kernel()
     systemService.setSystemCall(1, (int)syscall_write);
     // 设置2号系统调用
     systemService.setSystemCall(2, (int)syscall_fork);
+    // 设置3号系统调用
+    systemService.setSystemCall(3, (int)syscall_exit);
+    // 设置4号系统调用
+    systemService.setSystemCall(4, (int)syscall_wait);
+    // 设置5号系统调用
+    systemService.setSystemCall(5, (int)syscall_move_cursor);
 
     // 内存管理器
     memoryManager.initialize();

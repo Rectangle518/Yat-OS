@@ -23,4 +23,16 @@ int syscall_write(const char *str);
 int fork();
 int syscall_fork();
 
+// 第3个系统调用, exit
+void exit(int ret);
+void syscall_exit(int ret);
+
+// 第4个系统调用, wait
+int wait(int *retval);
+int syscall_wait(int *retval);
+
+// 第5个系统调用, move cursor
+void move_cursor(int i, int j);
+void syscall_move_cursor(int i, int j);
+
 #endif
