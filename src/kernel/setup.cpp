@@ -5,6 +5,7 @@
 #include "thread.h"
 #include "sync.h"
 #include "memory.h"
+#include "syscall.h"
 
 // 屏幕IO处理器
 STDIO stdio;
@@ -14,17 +15,18 @@ InterruptManager interruptManager;
 ProgramManager programManager;
 // 内存管理器
 MemoryManager memoryManager;
+// 系统调用
+SystemService systemService;
+
+int syscall_0(int first, int second, int third, int forth, int fifth)
+{
+    printf("systerm call 0: %d, %d, %d, %d, %d\n",
+           first, second, third, forth, fifth);
+    return first + second + third + forth + fifth;
+}
 
 void first_thread(void *arg)
 {
-    // 第1个线程不可以返回
-    // stdio.moveCursor(0);
-    // for (int i = 0; i < 25 * 80; ++i)
-    // {
-    //     stdio.print(' ');
-    // }
-    // stdio.moveCursor(0);
-
     asm_halt();
 }
 
@@ -45,6 +47,31 @@ extern "C" void setup_kernel()
     // 内存管理器
     memoryManager.openPageMechanism();
     memoryManager.initialize();
+
+    // 初始化系统调用
+    systemService.initialize();
+    // 设置0号系统调用
+    systemService.setSystemCall(0, (int)syscall_0);
+
+    int ret;
+
+    ret = asm_system_call(0);
+    printf("return value: %d\n", ret);
+
+    ret = asm_system_call(0, 123);
+    printf("return value: %d\n", ret);
+
+    ret = asm_system_call(0, 123, 324);
+    printf("return value: %d\n", ret);
+
+    ret = asm_system_call(0, 123, 324, 9248);
+    printf("return value: %d\n", ret);
+
+    ret = asm_system_call(0, 123, 324, 9248, 7);
+    printf("return value: %d\n", ret);
+
+    ret = asm_system_call(0, 123, 324, 9248, 7, 123);
+    printf("return value: %d\n", ret);
 
     // 创建第一个线程
     int pid = programManager.executeThread(first_thread, nullptr, "first thread", 1);

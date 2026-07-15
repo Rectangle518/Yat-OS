@@ -15,8 +15,11 @@ global asm_interrupt_status
 global asm_switch_thread
 global asm_atomic_exchange
 global asm_init_page_reg
+global asm_system_call
+global asm_system_call_handler
 
 extern c_time_interrupt_handler
+extern system_call_table
 
 ; 定义一个字符串变量，用作提示信息，以 '\0' 结尾
 ASM_UNHANDLED_INTERRUPT_INFO db 'Unhandled interrupt happened, halt...'
@@ -24,6 +27,8 @@ ASM_UNHANDLED_INTERRUPT_INFO db 'Unhandled interrupt happened, halt...'
 
 ASM_IDTR dw 0
          dd 0
+
+ASM_TEMP dd 0
 
 ; 定义打印字符串 "Hello World" 的函数
 asm_hello_world:
@@ -256,3 +261,104 @@ asm_init_page_reg:
     pop ebp
 
     ret
+
+; 系统调用
+asm_system_call:
+    push ebp
+    mov ebp, esp
+
+    ; 保护现场
+    push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+    push ds
+    push es
+    push fs
+    push gs
+
+    ; 将系统调用的参数放到5个寄存器ebx, ecx, edx, esi, edi中，将系统调用号放到eax中
+    mov eax, [ebp + 2 * 4]
+    mov ebx, [ebp + 3 * 4]
+    mov ecx, [ebp + 4 * 4]
+    mov edx, [ebp + 5 * 4]
+    mov esi, [ebp + 6 * 4]
+    mov edi, [ebp + 7 * 4]
+
+    ; 我们将系统调用的中断向量号定义为0x80
+    ; 保护现场后，使用指令int 0x80调用0x80中断
+    ; 0x80中断处理函数会根据保存在eax的系统调用号来调用不同的函数
+    int 0x80
+
+    ; 恢复现场
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop ebx
+    pop ebp
+
+    ret
+
+; asm_system_call_handler是0x80号中断的处理函数
+asm_system_call_handler:
+
+    ; 保护现场
+    push ds
+    push es
+    push fs
+    push gs
+    pushad
+
+    ; 保存原始的 eax（系统调用号）
+    push eax
+
+    ; 栈段会从tss中自动加载
+
+    ; 实际的系统调用处理函数是通过C语言来实现的
+    ; 但是，由于中断发生后只是更改了cs寄存器，ds，es，fs和gs寄存器并未修改
+    ; 因此在调用这些使用C语言实现的系统调用之前，我们需要手动修改这些段寄存器
+    mov eax, DATA_SELECTOR
+    mov ds, eax
+    mov es, eax
+
+    mov eax, VIDEO_SELECTOR
+    mov gs, eax
+
+    ; 恢复原始的 eax（系统调用号）
+    pop eax
+
+    ; 参数压栈
+    push edi
+    push esi
+    push edx
+    push ecx
+    push ebx
+
+    ; 开中断，调用系统调用处理函数
+    sti    
+    call dword[system_call_table + eax * 4]
+    cli
+
+    ; 修改esp寄存器，相当于将之前压入栈中的5个参数弹出栈
+    add esp, 5 * 4
+    
+    ; 系统调用处理函数返回后，函数的返回值会放在eax中
+    ; 因为eax保存了系统调用处理函数的返回值并且popad会修改eax的值，所以我们将eax保存在变量ASM_TEMP中
+    ; ASM_TEMP的定义在本文件的开头
+    mov [ASM_TEMP], eax
+
+    ; 恢复现场
+    popad
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    mov eax, [ASM_TEMP]
+    
+    iret
