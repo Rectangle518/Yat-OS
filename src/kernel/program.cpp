@@ -229,8 +229,13 @@ void ProgramManager::initializeTSS()
 
 int ProgramManager::executeProcess(const char *filename, int priority)
 {
+
+    // printf("111\n");
+
     bool status = interruptManager.getInterruptStatus();
     interruptManager.disableInterrupt();
+
+    // printf("222\n");
 
     // 在线程创建的基础上初步创建进程的PCB
     int pid = executeThread((ThreadFunction)load_process,
@@ -240,6 +245,8 @@ int ProgramManager::executeProcess(const char *filename, int priority)
         interruptManager.setInterruptStatus(status);
         return -1;
     }
+
+    // printf("333\n");
 
     // 找到刚刚创建的PCB
     PCB *process = ListItem2PCB(allPrograms.back(), tagInAllList);
@@ -253,7 +260,8 @@ int ProgramManager::executeProcess(const char *filename, int priority)
         return -1;
     }
 
-    
+    // printf("444\n");
+
     // 创建进程的虚拟地址池
     bool res = createUserVirtualPool(process);
 
@@ -264,7 +272,11 @@ int ProgramManager::executeProcess(const char *filename, int priority)
         return -1;
     }
 
+    // printf("555\n");
+
     interruptManager.setInterruptStatus(status);
+
+    // printf("666\n");
 
     return pid;
 }

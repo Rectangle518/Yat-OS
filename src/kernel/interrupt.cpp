@@ -6,8 +6,6 @@
 #include "os_modules.h"
 #include "program.h"
 
-extern STDIO stdio;
-
 int times = 0;
 
 InterruptManager::InterruptManager() 
@@ -110,7 +108,7 @@ extern "C" void c_time_interrupt_handler()
     PCB *cur = programManager.running;
 
     // 如果ticks还有剩余，则将当前进程的ticks减1，ticksPassedBy加1
-    if (cur && cur->ticks)
+    if (cur->ticks)
     {
         --cur->ticks;
         ++cur->ticksPassedBy;

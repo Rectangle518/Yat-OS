@@ -31,6 +31,9 @@ int syscall_0(int first, int second, int third, int forth, int fifth)
 
 void first_process()
 {
+
+    printf("first process\n");
+
     int pid = fork();
     
     if(pid == -1) {
