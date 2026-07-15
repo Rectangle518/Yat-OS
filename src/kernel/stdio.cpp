@@ -13,7 +13,7 @@ STDIO::STDIO()
 void STDIO::initialize()
 {
     // 初始化屏幕指针，指向显存的起始地址
-    screen = (uint8 *)0xb8000;
+    screen = (uint8 *)0xc00b8000;
 }
 
 // 三个重载的print是直接向显存写入字符和颜色
@@ -255,7 +255,7 @@ int printf(const char *const fmt, ...)
 
                 itos(number, temp, (fmt[i] == 'd' ? 10 : 16));
 
-                for (int j = temp - 1; j >= 0; --j)
+                for (int j = 0; number[j]; ++j)
                 {
                     counter += printf_add_to_buffer(buffer, number[j], idx, BUF_LEN);
                 }

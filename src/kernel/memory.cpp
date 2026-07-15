@@ -224,6 +224,8 @@ int MemoryManager::allocateVirtualPages(enum AddressPoolType type, const int cou
     if (type == AddressPoolType::KERNEL)
     {
         start = kernelVirtual.allocate(count);
+    } else if (type == AddressPoolType::USER){
+        start = programManager.running->userVirtual.allocate(count);
     }
 
     return (start == -1) ? 0 : start;
@@ -303,5 +305,9 @@ void MemoryManager::releaseVirtualPages(enum AddressPoolType type, const int vad
     if (type == AddressPoolType::KERNEL)
     {
         kernelVirtual.release(vaddr, count);
+    }
+    else if (type == AddressPoolType::USER)
+    {
+        programManager.running->userVirtual.release(vaddr, count);
     }
 }

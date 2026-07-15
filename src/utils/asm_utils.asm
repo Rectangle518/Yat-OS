@@ -17,6 +17,10 @@ global asm_atomic_exchange
 global asm_init_page_reg
 global asm_system_call
 global asm_system_call_handler
+global asm_ltr
+global asm_add_global_descriptor
+global asm_start_process
+global asm_update_cr3
 
 extern c_time_interrupt_handler
 extern system_call_table
@@ -27,7 +31,8 @@ ASM_UNHANDLED_INTERRUPT_INFO db 'Unhandled interrupt happened, halt...'
 
 ASM_IDTR dw 0
          dd 0
-
+ASM_GDTR dw 0
+         dd 0
 ASM_TEMP dd 0
 
 ; 定义打印字符串 "Hello World" 的函数
@@ -167,6 +172,10 @@ asm_time_interrupt_handler:
 
     ; pushad指令是将EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI依次入栈，popad则相反
     pushad
+    push ds
+    push es
+    push fs
+    push gs
     
     nop ; 空操作，否则断点打不上去
     ; 发送EOI消息，否则下一次中断不发生
@@ -176,6 +185,10 @@ asm_time_interrupt_handler:
     
     call c_time_interrupt_handler
 
+    pop gs
+    pop fs
+    pop es
+    pop ds
     popad
     iret
 
@@ -362,3 +375,64 @@ asm_system_call_handler:
     mov eax, [ASM_TEMP]
     
     iret
+
+; void asm_ltr(int tr)
+asm_ltr:
+    ltr word[esp + 1 * 4]
+    ret
+
+; int asm_add_global_descriptor(int low, int high);
+asm_add_global_descriptor:
+    push ebp
+    mov ebp, esp
+
+    push ebx
+    push esi
+
+    ; 先读入GDTR的内容，然后找到GDT的起始地址和偏移地址
+    sgdt [ASM_GDTR]
+    mov ebx, [ASM_GDTR + 2] ; GDT地址
+    xor esi, esi
+    mov si, word[ASM_GDTR] ; GDT界限
+    add esi, 1
+
+    ; 在GDT的末尾新增一个段描述符
+    mov eax, [ebp + 2 * 4] ; low
+    mov dword [ebx + esi], eax
+    mov eax, [ebp + 3 * 4] ; high
+    mov dword [ebx + esi + 4], eax
+
+    ; 计算段描述符在GDT的位置，并放入eax寄存器中
+    mov eax, esi
+    shr eax, 3
+
+    ; 将GDT的界限增加8并更新GDTR
+    add word[ASM_GDTR], 8
+    lgdt [ASM_GDTR]
+
+    pop esi
+    pop ebx
+    pop ebp
+
+    ret
+
+; void asm_start_process(int stack);
+asm_start_process:
+    ;jmp $
+    mov eax, dword[esp+4]
+    mov esp, eax
+    popad
+    pop gs;
+    pop fs;
+    pop es;
+    pop ds;
+
+    iret
+
+; void asm_update_cr3(int address)
+asm_update_cr3:
+    push eax
+    mov eax, dword[esp+8]
+    mov cr3, eax
+    pop eax
+    ret

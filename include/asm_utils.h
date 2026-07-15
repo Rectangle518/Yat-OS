@@ -18,5 +18,9 @@ extern "C" void asm_atomic_exchange(uint32 *reg, uint32 *mem);
 extern "C" void asm_init_page_reg(int *directory);
 extern "C" int asm_system_call(int index, int first = 0, int second = 0, int third = 0, int forth = 0, int fifth = 0);
 extern "C" int asm_system_call_handler();
+extern "C" int asm_add_global_descriptor(int low, int high);
+extern "C" void asm_ltr(int tr);
+extern "C" void asm_start_process(int stack);
+extern "C" void asm_update_cr3(int address);
 
 #endif

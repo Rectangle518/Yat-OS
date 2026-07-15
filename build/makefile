@@ -34,8 +34,11 @@ mbr.bin : $(SRCDIR)/boot/mbr.asm
 	$(ASM_COMPILER) -o mbr.bin -f bin -I$(INCLUDE_PATH)/ $(SRCDIR)/boot/mbr.asm
 	
 bootloader.bin : $(SRCDIR)/boot/bootloader.asm 
-	$(ASM_COMPILER) -o bootloader.bin -f bin -I$(INCLUDE_PATH)/ $(SRCDIR)/boot/bootloader.asm
-	
+	$(ASM_COMPILER) -o bootloader.o -g -f elf32 -I$(INCLUDE_PATH)/ $(SRCDIR)/boot/bootloader.asm
+	$(CXX_COMPLIER) -o page.o $(CXX_COMPLIER_FLAGS) -I$(INCLUDE_PATH) -c $(SRCDIR)/boot/page.cpp
+	$(LINKER) -o bootloader.obj -melf_i386 -N  bootloader.o page.o -Ttext 0x7e00 -e bootloader_start
+	objcopy -O binary bootloader.obj bootloader.bin
+
 entry.obj : $(SRCDIR)/boot/entry.asm
 	$(ASM_COMPILER) -o entry.obj -g -f elf32 $(SRCDIR)/boot/entry.asm
 	
@@ -43,13 +46,13 @@ kernel.bin : kernel.o
 	objcopy -O binary kernel.o kernel.bin
 	
 kernel.o : entry.obj $(OBJ)
-	$(LINKER) -o kernel.o -melf_i386 -N entry.obj $(OBJ) -e enter_kernel -Ttext 0x00020000
+	$(LINKER) -o kernel.o -melf_i386 -N entry.obj $(OBJ) -Ttext 0xc0020000 -e enter_kernel
 	
 $(CXX_OBJ): $(CXX_SOURCE)
 	$(CXX_COMPLIER) $(CXX_COMPLIER_FLAGS) -I$(INCLUDE_PATH) -c $(CXX_SOURCE)
 	
 asm_utils.o : $(SRCDIR)/utils/asm_utils.asm
-	$(ASM_COMPILER) -o asm_utils.o -g -f elf32 $(SRCDIR)/utils/asm_utils.asm
+	$(ASM_COMPILER) -o asm_utils.o -g -f elf32 -I$(INCLUDE_PATH)/ $(SRCDIR)/utils/asm_utils.asm
 clean:
 	rm -f *.o* *.bin 
 	

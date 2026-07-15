@@ -6,6 +6,7 @@
 #include "sync.h"
 #include "memory.h"
 #include "syscall.h"
+#include "tss.h"
 
 // 屏幕IO处理器
 STDIO stdio;
@@ -17,6 +18,8 @@ ProgramManager programManager;
 MemoryManager memoryManager;
 // 系统调用
 SystemService systemService;
+// Task State Segment
+TSS tss;
 
 int syscall_0(int first, int second, int third, int forth, int fifth)
 {
@@ -25,8 +28,18 @@ int syscall_0(int first, int second, int third, int forth, int fifth)
     return first + second + third + forth + fifth;
 }
 
+void first_process()
+{
+    asm_system_call(0, 132, 324, 12, 124);
+    asm_halt();
+}
+
 void first_thread(void *arg)
 {
+    printf("start process\n");
+    programManager.executeProcess((const char *)first_process, 1);
+    programManager.executeProcess((const char *)first_process, 1);
+    programManager.executeProcess((const char *)first_process, 1);
     asm_halt();
 }
 
@@ -45,7 +58,6 @@ extern "C" void setup_kernel()
     programManager.initialize();
 
     // 内存管理器
-    memoryManager.openPageMechanism();
     memoryManager.initialize();
 
     // 初始化系统调用
@@ -53,25 +65,7 @@ extern "C" void setup_kernel()
     // 设置0号系统调用
     systemService.setSystemCall(0, (int)syscall_0);
 
-    int ret;
-
-    ret = asm_system_call(0);
-    printf("return value: %d\n", ret);
-
-    ret = asm_system_call(0, 123);
-    printf("return value: %d\n", ret);
-
-    ret = asm_system_call(0, 123, 324);
-    printf("return value: %d\n", ret);
-
-    ret = asm_system_call(0, 123, 324, 9248);
-    printf("return value: %d\n", ret);
-
-    ret = asm_system_call(0, 123, 324, 9248, 7);
-    printf("return value: %d\n", ret);
-
-    ret = asm_system_call(0, 123, 324, 9248, 7, 123);
-    printf("return value: %d\n", ret);
+    printf("setup kernel\n --- %d %d", 1, 12345);
 
     // 创建第一个线程
     int pid = programManager.executeThread(first_thread, nullptr, "first thread", 1);
@@ -82,7 +76,7 @@ extern "C" void setup_kernel()
     }
 
     ListItem *item = programManager.readyPrograms.front();
-    PCB *firstThread = ListItem2PCB(item, tagInGeneralList);
+    PCB *firstThread = ListItem2PCB(item,tagInGeneralList);
     firstThread->status = RUNNING;
     programManager.readyPrograms.pop_front();
     programManager.running = firstThread;

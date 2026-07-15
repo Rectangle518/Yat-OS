@@ -13,6 +13,9 @@ public:
     List allPrograms;   // 所有状态的线程/进程的队列
     List readyPrograms; // 处于ready(就绪态)的线程/进程的队列
     PCB *running;       // 当前执行的线程
+    int USER_CODE_SELECTOR;  // 用户代码段选择子
+    int USER_DATA_SELECTOR;  // 用户数据段选择子
+    int USER_STACK_SELECTOR; // 用户栈段选择子
 
 public:
 
@@ -44,8 +47,25 @@ public:
     // Hasen 模型：阻塞队列中的阻塞线程被唤醒后，会在当前线程执行完成后立即运行刚被唤醒的阻塞线程
     // Hoare 模型：阻塞队列中的阻塞线程被唤醒后，当前线程会立即中断，并运行刚刚被唤醒的阻塞线程，等阻塞线程完成再回来运行
     void MESA_WakeUp(PCB *program);
+
+    // 初始化TSS
+    void initializeTSS();
+
+    // 创建进程
+    int executeProcess(const char *filename, int priority);
+
+    // 创建用户页目录表
+    int createProcessPageDirectory();
+
+    // 创建用户地址池
+    bool createUserVirtualPool(PCB *process);
+
+    // 切换页目录表，实现虚拟地址空间的切换
+    void activateProgramPage(PCB *program);
 };
 
 void program_exit();
+
+void load_process(const char *filename);
 
 #endif

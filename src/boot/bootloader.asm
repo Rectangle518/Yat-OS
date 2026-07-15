@@ -3,7 +3,6 @@
 ; Bootloader  [0x7e00, 0x8800)   512 bytes * 5
 ; GDT         [0x8800, 0x8880)   8 bytes   * 16（我们用到最多不超过16个段）
 
-org 0x7e00
 %include "boot.inc"
 
 extern open_page_mechanism
@@ -102,7 +101,7 @@ add dword[pgdt + 2], 0xc0000000
 lgdt [pgdt]
 
 ; 跳转到内核入口
-jmp dword CODE_SELECTOR:KERNEL_START_ADDRESS
+jmp dword CODE_SELECTOR:KERNEL_VIRTUAL_ADDRESS
 
 ; 死循环
 jmp $
