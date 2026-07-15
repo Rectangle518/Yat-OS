@@ -3,6 +3,7 @@
 #include "stdlib.h"
 #include "asm_utils.h"
 #include "os_modules.h"
+#include "stdio.h"
 
 // system_call_table中的每一个元素存放系统调用处理函数的地址
 int system_call_table[MAX_SYSTEM_CALL];
@@ -22,4 +23,20 @@ bool SystemService::setSystemCall(int index, int function)
 {
     system_call_table[index] = function;
     return true;
+}
+
+int write(const char *str) {
+    return asm_system_call(1, (int)str);
+}
+
+int syscall_write(const char *str) {
+    return stdio.print(str);
+}
+
+int fork() {
+    return asm_system_call(2);
+}
+
+int syscall_fork() {
+    return programManager.fork();
 }

@@ -50,3 +50,20 @@ void memset(void *memory, char value, int length)
 int ceil(const int dividend, const int divisor) {
     return (dividend + divisor - 1) / divisor;
 }
+
+void memcpy(void *src, void *dst, uint32 length)
+{
+    for (uint32 i = 0; i < length; ++i)
+    {
+        ((char *)dst)[i] = ((char *)src)[i];
+    }
+}
+
+void strcpy(const char *src, char *dst) {
+    int i = 0;
+    while(src[i]) {
+        dst[i] = src[i];
+        ++i;
+    }
+    dst[i] = '\0';
+}

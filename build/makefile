@@ -60,7 +60,7 @@ run:
 	qemu-system-i386 -hda $(RUNDIR)/hd.img -serial null -parallel stdio -no-reboot
 
 debug: 
-	qemu-system-i386 -S -s -parallel stdio -hda $(RUNDIR)/hd.img -serial null&
+	qemu-system-i386 -S -s -parallel stdio -hda $(RUNDIR)/hd.img -serial null -no-reboot&
 	@sleep 1
 	gnome-terminal -e "gdb -q -tui -x $(RUNDIR)/gdbinit"
 

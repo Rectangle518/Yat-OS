@@ -20,4 +20,10 @@ void memset(void *memory, char value, int length);
 // 上取整
 int ceil(const int dividend, const int divisor);
 
+// 内存复制，将src开始的length个字节复制到dst中
+void memcpy(void *src, void *dst, uint32 length);
+
+// 字符串复制
+void strcpy(const char *src, char *dst);
+
 #endif
